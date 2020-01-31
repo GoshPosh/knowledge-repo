@@ -1,5 +1,4 @@
 import datetime
-import keyring
 import getpass
 
 
@@ -71,10 +70,10 @@ DB_AUTO_UPGRADE = True
 # By default, the knowledge repo offers:
 # ['debug', 'oauth2', 'bitbucket', 'github', 'google']
 AUTH_PROVIDERS = ['github']
-OAUTH_GITHUB_CLIENT_ID = 'cd40cd7016d68b8cf393'
-OAUTH_GITHUB_CLIENT_SECRET = '34f944f404a8d317d9591ff2458762518deaf025'
-#OAUTH_OKTA_CLIENT_ID = '0oa13wl8orSXtfWVA357'
-#OAUTH_OKTA_CLIENT_SECRET = 't5K3QHE34kt73DQllNO5h55DoxcjojMZusN23SuD'
+OAUTH_GITHUB_CLIENT_ID = ''
+OAUTH_GITHUB_CLIENT_SECRET = ''
+#OAUTH_OKTA_CLIENT_ID = ''
+#OAUTH_OKTA_CLIENT_SECRET = ''
 
 
 # If you are going to use a OAuth provider, you will need to specify client ids
@@ -118,8 +117,8 @@ OAUTH_OAUTH2_USER_INFO_MAPPING = {
      'avatar_uri': 'avatar_url'
 }
 OAUTH_OAUTH2_VERIFY_SSL_CERTS = None
-OAUTH_OAUTH2_CLIENT_ID = 'cd40cd7016d68b8cf393'
-OAUTH_OAUTH2_CLIENT_SECRET = '34f944f404a8d317d9591ff2458762518deaf025'
+OAUTH_OAUTH2_CLIENT_ID = ''
+OAUTH_OAUTH2_CLIENT_SECRET = ''
 """
 
 # Okta
@@ -137,8 +136,8 @@ OAUTH_OAUTH2_USER_INFO_MAPPING = {
 }
 """
 #OAUTH_OAUTH2_VERIFY_SSL_CERTS = False
-#OAUTH_OAUTH2_CLIENT_ID = '0oa13wl8orSXtfWVA357'
-#OAUTH_OAUTH2_CLIENT_SECRET = 't5K3QHE34kt73DQllNO5h55DoxcjojMZusN23SuD'
+#OAUTH_OAUTH2_CLIENT_ID = ''
+#OAUTH_OAUTH2_CLIENT_SECRET = ''
 
 
 
@@ -335,9 +334,9 @@ MAIL_PORT = 587  # default = 25
 MAIL_USE_TLS = True  # default = False
 MAIL_USE_SSL = False  # default = False
 MAIL_DEBUG = False  # default = app.debug
-MAIL_USERNAME = 'stephen@poshmark.com'  # default = None
-MAIL_PASSWORD = 'aabnpggrrbbtstxj'#keyring.get_password('flask_email','stephen')  # default = None
-MAIL_DEFAULT_SENDER = 'stephen@poshmark.com'  # default = None
+MAIL_USERNAME = None  # default = None
+MAIL_PASSWORD = None  
+MAIL_DEFAULT_SENDER = None  # default = None
 MAIL_MAX_EMAILS = None  # default = None
 MAIL_SUPPRESS_SEND = False  # default = app.testing
 MAIL_ASCII_ATTACHMENTS = False  # default = False
