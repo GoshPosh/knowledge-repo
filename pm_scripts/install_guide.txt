@@ -1,0 +1,26 @@
+# Deployment documentations:
+# https://knowledge-repo.readthedocs.io/en/latest/deployment.html
+# Requirements: Python 3.5+
+
+# Initialize environment and install knowledge-repo
+python3 -m venv knowledge_repo_server # or meaningful name
+cd ./knowledge_repo_server
+git clone git@github.com:GoshPosh/knowledge-repo.git
+source bin/activate
+pip3 install -U pip
+pip3 install -e knowledge-repo
+mkdir analytics
+mkdir repo
+knowledge_repo --repo repo init
+
+# test default deployment if needed
+# default deployment does not require a database backend
+# default deployment does not allow user login
+knowledge_repo --repo ./repo runserver
+
+# custom deployment
+# config.py file will need to be updated with correct parameters after copying
+# SERVER_NAME = '10.0.1.127:7000' # Set to actual server url/port
+# SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/kr' # set to database uri
+cp knowledge-repo/pm_scripts/config.py config.py
+knowledge_repo --repo ./repo deploy --config config.py --engine flask
