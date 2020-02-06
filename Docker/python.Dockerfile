@@ -1,7 +1,6 @@
 
 FROM alpine:3.10
 
-
 ENV PATH /usr/local/bin:$PATH
 
 ENV LANG C.UTF-8
