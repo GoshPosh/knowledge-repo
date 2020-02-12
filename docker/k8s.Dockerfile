@@ -24,4 +24,13 @@ ENV PORT=$PORT_ARG
 
 #EXPOSE ${PORT}
 
+#EXPOSE ${PORT}
+
+# custom deployment
+# config.py file will need to be updated with correct parameters after copying
+# SERVER_NAME = '10.0.1.127:7000' # Set to actual server url/port
+# SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/kr' # set to database uri
+# cp knowledge-repo/pm_scripts/config.py config.py
+# knowledge_repo --repo ./repo deploy --config config.py --engine flask
+
 ENTRYPOINT knowledge_repo --repo ./repo runserver

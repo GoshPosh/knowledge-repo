@@ -1,0 +1,78 @@
+
+{{- /*
+The main Deployment Controller for the application being deployed. This resource manages the creation and replacement
+of the Pods backing your application.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "knowledge-app.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "knowledge-app.name" . }}
+    helm.sh/chart: {{ include "knowledge-app.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "knowledge-app.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "knowledge-app.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict : "false"
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: DD_AGENT_SERVICE_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.heathcheck.url }}
+              port: http
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 2
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.heathcheck.url }}
+              port: http
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 2
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name:  goshposh-logs
+            mountPath:  /goshposh/log
+      volumes:
+      - name: goshposh-logs
+        hostPath:
+          path: /goshposh/log
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

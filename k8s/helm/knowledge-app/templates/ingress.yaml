@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "knowledge-app.fullname" . -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app.kubernetes.io/name: {{ include "knowledge-app.name" . }}
+    helm.sh/chart: {{ include "knowledge-app.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.defaultBackend.enabled }}
+  backend:
+      serviceName: {{ .Values.ingress.defaultBackend.serviceName }}
+      servicePort: {{ .Values.ingress.defaultBackend.servicePort }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . | quote }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.rules }}
+    - http:
+        paths:
+          {{- range .http.paths }}
+          - backend:
+              serviceName: {{ .backend.serviceName | quote }}
+              servicePort: {{ .backend.servicePort }}
+            {{- if .path }}
+            path: {{ .path  | quote}}
+            {{- end }}
+      {{- if .host }}
+      host: {{ .host | quote }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

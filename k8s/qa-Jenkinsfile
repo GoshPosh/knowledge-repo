@@ -1,0 +1,125 @@
+pipeline {
+    options { timestamps () }
+    agent { label 'master' }
+    parameters {
+        booleanParam defaultValue: false, description: 'promote docker image to prod ecr', name: 'PROMOTE'
+        booleanParam defaultValue: true, description: 'deploy changes to env', name: 'DEPLOY'
+        booleanParam defaultValue: false, description: 'run tests', name: 'TEST'
+        choice choices: ['qa'], description: 'Environment for release', name: 'KUBE_ENV'
+        choice choices: ['us-east-1'], description: 'AWS Region', name: 'AWS_REGION'
+        //Provide the branch as a parameter.
+    }
+    environment {
+        KNOWLEDGE_NAMESPACE="knowledge"
+        PYTHON_VERSION="v3.6"
+    }
+    stages{
+        stage('CleanWorkspace') {
+            agent { label 'docker' }
+            steps {
+                slackSend color: "good", message: "K8s Knowledge App Build Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", channel: '#knowledge_repo', tokenCredentialId: 'slack-non-prod-token'
+                cleanWs()
+            }
+        }
+        stage ('Prepare') {
+            agent { label 'docker' }
+            steps {
+                checkout scm: [
+                        $class: 'GitSCM',
+                        branches: [[name: '*/$BRANCH_NAME']],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [
+                            [$class: 'CleanBeforeCheckout'],
+                            [$class: 'CloneOption', honorRefspec: true, noTags: true, reference: '', shallow: true]
+                        ],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [
+                            [credentialsId: 'ce917ed1-2a6e-4819-8d17-fec215d5715a', url: 'git@github.com:GoshPosh/knowledge-repo']
+                        ]
+                ]
+                script {
+                    // Set the ECR URI for knowledge
+                    if (env.KUBE_ENV.equals('qa')){
+                        env.KNOWLEDGE_ECR_URI = "605735537041.dkr.ecr.us-east-1.amazonaws.com/knowledge"
+                        env.PYTHON_ECR_URI = "605735537041.dkr.ecr.us-east-1.amazonaws.com/python"
+                    }
+                    env.ENV = env.KUBE_ENV
+                }
+            }
+        }
+        stage('Build and Export Image') {
+            agent { label 'docker' }
+            steps {
+                sh label: 'build', script: '''
+                #!/bin/bash
+                set -e
+                GIT_COMMIT_ID=$(git rev-parse --short=8 ${GIT_COMMIT})
+                $(aws ecr get-login --region us-east-1 --no-include-email)
+                ECR_IMAGE_TAG=$(echo $ENV-$BRANCH_NAME-$GIT_COMMIT_ID)
+
+                set +e
+                IMAGE_META=$( aws ecr describe-images --repository-name=knowledge --image-ids imageTag=$ECR_IMAGE_TAG  --region $AWS_REGION > /dev/null 2>&1 )
+                if [ $? != 0 ]; then
+                    set -e
+                    echo "corresponding image for this commit not found"
+                    docker build . -f docker/k8s.Dockerfile --rm \
+                        -t $KNOWLEDGE_ECR_URI:$ENV-$BRANCH_NAME \
+                        -t $KNOWLEDGE_ECR_URI:$ECR_IMAGE_TAG \
+                        --build-arg BASE_IMAGE=$PYTHON_ECR_URI \
+                        --build-arg BASE_IMAGE_VERSION=$PYTHON_VERSION \
+                        --build-arg ENV_ARG=$ENV \
+                        --no-cache
+
+                    docker push $KNOWLEDGE_ECR_URI:$ENV-$BRANCH_NAME
+                    docker push $KNOWLEDGE_ECR_URI:$ECR_IMAGE_TAG
+                    docker rmi $KNOWLEDGE_ECR_URI:$ENV-$BRANCH_NAME
+                    docker rmi $KNOWLEDGE_ECR_URI:$ECR_IMAGE_TAG
+                else
+                    echo "Image with tag $ECR_IMAGE_TAG already exists in ECR, skip to next stage!!!"
+                fi
+                '''
+            }
+        }
+        stage('Deploy to EKS') {
+		     when {
+                expression {
+                    return params.DEPLOY
+                }
+            }
+            agent { label 'peks-qa' }
+            steps {
+                sh label: '', script: '''
+                GIT_COMMIT_ID=$(git rev-parse --short=8 ${GIT_COMMIT})
+                ECR_IMAGE_TAG=$(echo $ENV-$BRANCH_NAME-$GIT_COMMIT_ID)
+                sed -i "s/IMAGE_TAG/$ECR_IMAGE_TAG/g" k8s/helm/knowledge-app/$ENV-values.yaml
+                set -x
+                cd k8s/helm
+                kubectl scale --replicas=1 deployment knowledge-alb-aws-alb-ingress-controller  --kubeconfig $ENV-kube-config --namespace=$KNOWLEDGE_NAMESPACE
+                sleep 30
+                helm upgrade --install $ENV-knowledge ./knowledge-app -f knowledge-app/$ENV-values.yaml --namespace=$KNOWLEDGE_NAMESPACE --kubeconfig $ENV-kube-config
+                set +e
+                ./wait-for-deployment -n knowledge -t 300 -e $ENV-kube-config $ENV-knowledge-app
+                DEPLOYMENT_STATUS=$?
+                set -e
+                sleep 180
+                kubectl scale --replicas=0 deployment knowledge-alb-aws-alb-ingress-controller --kubeconfig $ENV-kube-config --namespace=$KNOWLEDGE_NAMESPACE
+                exit $DEPLOYMENT_STATUS
+                '''
+            }
+        }
+    }
+	 post {
+        failure {
+          slackSend color: "danger", message: "K8s Knowledge App Build Failed - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", channel: '#knowledge_repo', tokenCredentialId: 'slack-non-prod-token'
+         }
+         unstable {
+            slackSend color: "danger", message:  "K8s Knowledge App Build Unstable - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", channel: '#knowledge_repo', tokenCredentialId: 'slack-non-prod-token'
+         }
+        success {
+            slackSend color: "good", message: "K8s Knowledge App Build Success - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", channel: '#knowledge_repo', tokenCredentialId: 'slack-non-prod-token'
+         }
+         aborted {
+            slackSend color: "danger", message: "K8s Knowledge App Build Aborted - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", channel: '#knowledge_repo', tokenCredentialId: 'slack-non-prod-token'
+         }
+     }
+}
