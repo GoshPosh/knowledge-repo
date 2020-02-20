@@ -14,7 +14,7 @@ import getpass
 # not provided, it is assumed in these contexts to be
 # 'localhost:7000'. Be sure to specify this before deploying
 # into production.
-SERVER_NAME = '0.0.0.0:7000'
+SERVER_NAME = 'ae8e8536c4e5611ea8d9212bb7211a17-1956233292.us-east-1.elb.amazonaws.com:7000'
 
 # The knowledge repository uses the secret key to sign user
 # sessions. If not specified, a unique secret key will be
@@ -44,7 +44,7 @@ DEBUG = False
 # ---------------------------------------------------
 # Database configuration
 # ---------------------------------------------------
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://qa-knowledge.cfixyr8sjfcf.us-east-1.rds.amazonaws.com'
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://admin:goshposh@qa-knowledge.cfixyr8sjfcf.us-east-1.rds.amazonaws.com/knowledge'
 SQLALCHEMY_ECHO = True
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
