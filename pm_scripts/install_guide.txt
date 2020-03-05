@@ -6,9 +6,11 @@
 python3 -m venv knowledge_repo_server # or meaningful name
 cd ./knowledge_repo_server
 git clone git@github.com:GoshPosh/knowledge-repo.git
+git clone git@github.com:GoshPosh/analytics.git
 source bin/activate
 pip3 install -U pip
 pip3 install -e knowledge-repo
+pip3 install -e analytics/packages/pmutils
 mkdir analytics
 mkdir repo
 knowledge_repo --repo repo init
