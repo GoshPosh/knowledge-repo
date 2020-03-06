@@ -17,6 +17,7 @@ NOW = datetime.now()
 WEEKDAY = date(NOW.year, NOW.month, NOW.day).weekday()
 REPO = '/Users/posh/knowledge_repo/analytics/knowledge_repo'
 BASE_DIR = '/Users/posh/knowledge_repo'
+#TODO change above directory to whatever is needed for production
 
 
 
@@ -80,17 +81,29 @@ def is_updated(project=None, filename=None, repo=None, ref='mirror', ref_path=No
 
 def update_repo():
 
-    # pull the latest commits. Return if there are no new commits
+    # pull the latest commits. 
+    previous_head = subprocess.run("git rev-parse head".split(),
+                                  capture_output=True
+                                 ).stdout.decode('ascii').strip()
     commits = git.pull()
+    current_head = subprocess.run("git rev-parse head".split(),
+                              capture_output=True
+                             ).stdout.decode('ascii').strip()
+    # get a list of all commits since last pull
+    commit_list = subprocess.run(f'git rev-list --no-walk {current_head} ^{previous_head}'.split()
+                                 ,capture_output=True
+                                ).stdout.decode('ascii').strip().split()
+    
+    # Return if there are no new commits
+    # can be changed to check if current_head = previous_head
     if commits.stdout.decode('ascii').startswith('Already up to date.'):
-        print('Already up to date.')
-        return
+        return 
+    
 
+    # get files from all commits between previous head and current head
+    cmds = [f'git show --commit_list-only --oneline HEAD~{commit}'.split()
+            for commit in commit_list]
 
-    # code runs frequently. check the last 5 commits for knowledge posts
-    # if there are no new commits then we can return
-    cmds = [f'git show --name-only --oneline HEAD~{i}'.split()
-            for i in range(5)]
     os.chdir(BASE_DIR)
     CWD = os.getcwd()
     os.chdir(f'{CWD}/analytics')
