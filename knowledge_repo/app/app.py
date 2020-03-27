@@ -100,6 +100,7 @@ class KnowledgeFlask(Flask):
         # served.
         @self.before_first_request
         def start_indexing():
+            current_app.db.engine.dispose()
             if self.config['INDEXING_ENABLED']:
                 self.start_indexing()
 
