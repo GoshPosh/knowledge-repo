@@ -3,16 +3,21 @@ from datetime import datetime
 from datetime import date
 from pathlib import Path
 import subprocess
+import argparse
 import filecmp
 import shutil
 import time
 import os
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--repo', default='/Users/posh/knowledge_repo/analytics/knowledge_repo', help='directory to populate notebooks')
 
+args = parser.parse_args()
+REPO = args.repo
 
 NOW = datetime.now()
 WEEKDAY = date(NOW.year, NOW.month, NOW.day).weekday()
-REPO = '/Users/posh/knowledge_repo/analytics/knowledge_repo'
+REPO = args.repo
 
 
 
